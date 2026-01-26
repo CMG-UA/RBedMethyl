@@ -85,6 +85,48 @@ setMethod("filterCoverage", "RBedMethyl", function(x, min_cov = 5L) {
   subsetBy(x, "coverage", function(v) v >= min_cov)
 })
 
+#' Subset by chromosomes
+#'
+#' Subset an \code{RBedMethyl} object by one or more chromosomes.
+#'
+#' @param x An \code{RBedMethyl} object.
+#' @param chr Character vector of chromosome names.
+#'
+#' @return A filtered \code{RBedMethyl} object.
+#' @export
+#' @aliases subsetByChromosomes,RBedMethyl-method
+#' @examples
+#' lines <- c(
+#'   paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+#'   paste("chr2", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t")
+#' )
+#' tmp <- tempfile(fileext = ".bed")
+#' writeLines(lines, tmp)
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm2 <- subsetByChromosomes(bm, c("chr1"))
+#' length(RBedMethyl::beta(bm2))
+setGeneric("subsetByChromosomes", function(x, chr) standardGeneric("subsetByChromosomes"))
+#' @export
+setMethod("subsetByChromosomes", "RBedMethyl", function(x, chr) {
+  if (!is.character(chr) || length(chr) == 0L) {
+    stop("chr must be a non-empty character vector.")
+  }
+  chr <- unique(chr)
+  missing_chr <- setdiff(chr, rownames(x@chr_index))
+  if (length(missing_chr) > 0L) {
+    stop("Requested chromosome(s) not present in object: ", paste(missing_chr, collapse = ", "))
+  }
+
+  starts <- vapply(chr, function(cn) x@chr_index[cn, 1], integer(1L))
+  ends <- vapply(chr, function(cn) x@chr_index[cn, 2], integer(1L))
+  keep <- unlist(Map(seq.int, starts, ends), use.names = FALSE)
+
+  x@index <- intersect(x@index, keep)
+  validObject(x)
+  x
+})
+
+
 #' Subset by region
 #'
 #' Subset an \code{RBedMethyl} object by genomic interval.

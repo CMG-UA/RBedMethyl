@@ -80,6 +80,24 @@ testthat::test_that("subsetByRegion supports GRanges and [ indexing", {
   testthat::expect_equal(length(bm_bracket_log@index), 2L)
 })
 
+testthat::test_that("subsetByChromosomes filters by chromosome", {
+  lines <- c(
+    paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr2", 0, 1, "m", 0, "-", 0, 1, 0, 8, 0.375, 3, 5, 0, 0, 0, 0, 0, sep = "\t")
+  )
+
+  tmp <- tempfile(fileext = ".bed")
+  writeLines(lines, tmp)
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+
+  bm_chr1 <- RBedMethyl::subsetByChromosomes(bm, "chr1")
+  testthat::expect_equal(length(bm_chr1@index), 2L)
+
+  bm_chr2 <- RBedMethyl::subsetByChromosomes(bm, c("chr2"))
+  testthat::expect_equal(length(bm_chr2@index), 1L)
+})
+
 testthat::test_that("example bedmethyl file can be read", {
   example_path <- system.file(
     "extdata",
