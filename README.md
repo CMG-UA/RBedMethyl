@@ -9,6 +9,12 @@ stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecy
 
 Disk-backed access to nanoporetech modkit bedMethyl files for ONT-scale workflows.
 
+## Disclaimer
+
+I am not affiliated with nanoporetech. This package has been tested with modkit
+pileup v0.6.1 and commit
+https://github.com/nanoporetech/modkit/tree/481e3c9e7930f3f499eadf1ef441606f33e6881c.
+
 ## Installation
 
 ### Bioconductor (when available)
