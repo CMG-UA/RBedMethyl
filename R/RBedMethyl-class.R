@@ -24,11 +24,11 @@ setClass(
 )
 
 setValidity("RBedMethyl", function(object) {
-  required <- c("chrom", "chromStart", "chromEnd", "strand", "coverage")
+  required <- c("chrom", "chromStart", "chromEnd", "strand")
   if (!all(required %in% names(object@assays))) {
     return("Missing required assay columns")
   }
-  n <- length(object@assays$coverage)
+  n <- length(object@assays$chrom)
   if (any(object@index < 1L | object@index > n)) {
     return("Index out of bounds")
   }

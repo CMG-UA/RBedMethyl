@@ -253,6 +253,9 @@ setMethod("summarizeByRegion", "RBedMethyl", function(x, regions) {
   if (!"mod_reads" %in% names(x@assays)) {
     stop("mod_reads assay not available; load it via fields.")
   }
+  if (!"coverage" %in% names(x@assays)) {
+    stop("coverage assay not available; load it via fields.")
+  }
 
   idx <- x@index
   chrom <- x@chrom_levels[x@assays$chrom[idx]]
