@@ -2,7 +2,7 @@
 
 <!-- badges: start -->
 [![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![R-CMD-check](https://github.com/CMG-UA/RBedMethyl/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/CMG-UA/RBedMethyl/actions/workflows/R-CMD-check.yaml)
 [![codecov](https://codecov.io/gh/CMG-UA/RBedMethyl/graph/badge.svg?token=58D9F1XJHY)](https://codecov.io/gh/CMG-UA/RBedMethyl)
 <!-- badges: end -->
