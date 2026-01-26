@@ -15,6 +15,9 @@ if (!isGeneric("beta")) {
 #' @importFrom methods is validObject
 #' @aliases beta,RBedMethyl-method
 setMethod("beta", signature(a = "RBedMethyl", b = "missing"), function(a, b) {
+  if ("pct" %in% names(a@assays)) {
+    return(a@assays$pct[a@index])
+  }
   if (!"mod_reads" %in% names(a@assays)) {
     stop("mod_reads assay not available; load it via fields.")
   }
