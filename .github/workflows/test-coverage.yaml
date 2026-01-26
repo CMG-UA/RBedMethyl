@@ -35,6 +35,7 @@ jobs:
             any::covr
             any::xml2
             any::rcmdcheck
+            any::testthat
 
           needs: coverage
 
