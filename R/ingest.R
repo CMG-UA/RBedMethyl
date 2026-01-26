@@ -4,14 +4,18 @@
 #' modkit bedMethyl file (headerless).
 #'
 #' @param bedmethyl Path to a nanoporetech modkit bedMethyl file (optionally gzipped).
-#' @param h5file Path to the HDF5 file to create.
-#' @param mod Modification code to retain (e.g., \code{"m"}).
+#' @param mod Modification code to retain (\code{"m"} or \code{"h"}).
 #' @param chunk_size Reserved for future use.
+#' @param h5file Path to the HDF5 file to create. Defaults to a deterministic
+#'   path in \code{tempdir()} derived from the input \code{bedmethyl} filename,
+#'   so subsequent calls reuse the same file.
 #' @param check_sorted Logical, check that records are sorted by chrom and chromStart.
 #' @param fields Character vector of numeric fields to load. Defaults to \code{c("coverage", "mod_reads")}.
 #'
 #' @return An \code{RBedMethyl} object.
 #' @export
+#' @importFrom stats setNames
+#' @importFrom methods new
 #' @examples
 #' lines <- c(
 #'   paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
@@ -19,12 +23,31 @@
 #' )
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
-#' h5 <- tempfile(fileext = ".h5")
-#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 #' bm
-readBedMethyl <- function(bedmethyl, h5file, mod, chunk_size = 5e6,
-                          check_sorted = TRUE,
+readBedMethyl <- function(bedmethyl, mod = "m", chunk_size = 5e6,
+                          h5file = NULL, check_sorted = TRUE,
                           fields = c("coverage", "mod_reads")) {
+  if (!mod %in% c("m", "h")) {
+    stop("mod must be one of: 'm', 'h'.")
+  }
+  if (is.null(h5file)) {
+    base <- basename(bedmethyl)
+    base <- sub("\\.gz$", "", base, ignore.case = TRUE)
+    base <- sub("\\.[^.]+$", "", base)
+
+    hash <- tryCatch(as.character(tools::md5sum(bedmethyl)),
+      error = function(e) NA_character_
+    )
+    if (is.na(hash)) {
+      key <- tryCatch(normalizePath(bedmethyl, winslash = "/", mustWork = FALSE),
+        error = function(e) bedmethyl
+      )
+      hash <- paste0("path_", gsub("[^A-Za-z0-9]", "_", key))
+    }
+
+    h5file <- file.path(tempdir(), paste0(base, "_", hash, ".h5"))
+  }
   required_cols <- c(
     "chrom", "chromStart", "chromEnd", "mod", "score", "strand",
     "thickStart", "thickEnd", "itemRgb", "coverage", "pct",

@@ -6,9 +6,9 @@
 \usage{
 readBedMethyl(
   bedmethyl,
-  h5file,
-  mod,
+  mod = "m",
   chunk_size = 5e+06,
+  h5file = NULL,
   check_sorted = TRUE,
   fields = c("coverage", "mod_reads")
 )
@@ -16,11 +16,13 @@ readBedMethyl(
 \arguments{
 \item{bedmethyl}{Path to a nanoporetech modkit bedMethyl file (optionally gzipped).}
 
-\item{h5file}{Path to the HDF5 file to create.}
-
-\item{mod}{Modification code to retain (e.g., \code{"m"}).}
+\item{mod}{Modification code to retain (\code{"m"} or \code{"h"}).}
 
 \item{chunk_size}{Reserved for future use.}
+
+\item{h5file}{Path to the HDF5 file to create. Defaults to a deterministic
+path in \code{tempdir()} derived from the input \code{bedmethyl} filename,
+so subsequent calls reuse the same file.}
 
 \item{check_sorted}{Logical, check that records are sorted by chrom and chromStart.}
 
@@ -40,7 +42,6 @@ lines <- c(
 )
 tmp <- tempfile(fileext = ".bed")
 writeLines(lines, tmp)
-h5 <- tempfile(fileext = ".h5")
-bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 bm
 }

@@ -10,6 +10,7 @@
 #' @slot mod Modification code.
 #'
 #' @exportClass RBedMethyl
+#' @importClassesFrom S4Vectors SimpleList
 setClass(
   "RBedMethyl",
   slots = c(

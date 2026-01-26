@@ -27,8 +27,7 @@ lines <- c(
 )
 tmp <- tempfile(fileext = ".bed")
 writeLines(lines, tmp)
-h5 <- tempfile(fileext = ".h5")
-bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 bm2 <- subsetBy(bm, "coverage", function(v) v >= 15)
 length(RBedMethyl::beta(bm2))
 }

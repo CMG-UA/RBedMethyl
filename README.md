@@ -1,5 +1,12 @@
 # RBedMethyl
 
+<!-- badges: start -->
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/CMG-UA/RBedMethyl/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/CMG-UA/RBedMethyl/actions/workflows/R-CMD-check.yaml)
+[![codecov](https://codecov.io/gh/CMG-UA/RBedMethyl/graph/badge.svg?token=58D9F1XJHY)](https://codecov.io/gh/CMG-UA/RBedMethyl)
+<!-- badges: end -->
+
 Disk-backed access to nanoporetech modkit bedMethyl files for ONT-scale workflows.
 
 ## Installation
@@ -33,8 +40,11 @@ lines <- c(
 bed <- tempfile(fileext = ".bed")
 writeLines(lines, bed)
 
-h5 <- tempfile(fileext = ".h5")
-bm <- readBedMethyl(bed, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+# Show available fields
+bedMethylFields()
+
+# Read coverage and mod_reads
+bm <- readBedMethyl(bed, mod = "m", fields = c("coverage", "mod_reads"))
 
 # Per-site methylation fraction
 beta(bm)

@@ -12,6 +12,7 @@ if (!isGeneric("beta")) {
 #'
 #' @return Numeric vector of per-site methylation fractions.
 #' @export
+#' @importFrom methods is validObject
 #' @aliases beta,RBedMethyl-method
 setMethod("beta", signature(a = "RBedMethyl", b = "missing"), function(a, b) {
   if (!"mod_reads" %in% names(a@assays)) {
@@ -39,8 +40,7 @@ setMethod("beta", signature(a = "RBedMethyl", b = "missing"), function(a, b) {
 #' )
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
-#' h5 <- tempfile(fileext = ".h5")
-#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 #' bm2 <- subsetBy(bm, "coverage", function(v) v >= 15)
 #' length(RBedMethyl::beta(bm2))
 setGeneric("subsetBy", function(x, column, FUN) standardGeneric("subsetBy"))
@@ -73,8 +73,7 @@ setMethod("subsetBy", "RBedMethyl", function(x, column, FUN) {
 #' )
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
-#' h5 <- tempfile(fileext = ".h5")
-#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 #' bm2 <- filterCoverage(bm, min_cov = 15)
 #' length(RBedMethyl::beta(bm2))
 setGeneric("filterCoverage", function(x, min_cov) standardGeneric("filterCoverage"))
@@ -95,6 +94,7 @@ setMethod("filterCoverage", "RBedMethyl", function(x, min_cov = 5L) {
 #' @return A filtered \code{RBedMethyl} object.
 #' @export
 #' @aliases subsetByRegion,RBedMethyl-method
+#' @aliases subsetByRegion,RBedMethyl,character,numeric,numeric-method
 #' @examples
 #' lines <- c(
 #'   paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
@@ -102,8 +102,7 @@ setMethod("filterCoverage", "RBedMethyl", function(x, min_cov = 5L) {
 #' )
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
-#' h5 <- tempfile(fileext = ".h5")
-#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 #' bm2 <- subsetByRegion(bm, "chr1", 0, 5)
 #' length(RBedMethyl::beta(bm2))
 setGeneric(
@@ -113,7 +112,8 @@ setGeneric(
 
 #' @export
 setMethod(
-  "subsetByRegion", "RBedMethyl",
+  "subsetByRegion",
+  signature(x = "RBedMethyl", chr = "character", start = "numeric", end = "numeric"),
   function(x, chr, start, end) {
     if (length(chr) != 1L) {
       stop("chr must be a single chromosome.")
@@ -185,6 +185,9 @@ setMethod(
 #'
 #' @return A filtered \code{RBedMethyl} object.
 #' @export
+#' @aliases [,RBedMethyl-method
+#' @aliases [,RBedMethyl,missing,missing,missing-method
+#' @aliases [,RBedMethyl,ANY,missing,missing-method
 setMethod("[", signature(x = "RBedMethyl", i = "missing", j = "missing", drop = "missing"),
   function(x, i, j, ..., drop) {
     x
@@ -231,8 +234,7 @@ setMethod("[", signature(x = "RBedMethyl", i = "ANY", j = "missing", drop = "mis
 #' )
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
-#' h5 <- tempfile(fileext = ".h5")
-#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 #' regions <- GenomicRanges::GRanges(
 #'   seqnames = "chr1",
 #'   ranges = IRanges::IRanges(start = 1, end = 12)

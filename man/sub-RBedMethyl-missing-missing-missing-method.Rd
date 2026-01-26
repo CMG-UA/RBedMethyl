@@ -2,6 +2,8 @@
 % Please edit documentation in R/methods.R
 \name{[,RBedMethyl,missing,missing,missing-method}
 \alias{[,RBedMethyl,missing,missing,missing-method}
+\alias{[,RBedMethyl-method}
+\alias{[,RBedMethyl,ANY,missing,missing-method}
 \title{Subset rows}
 \usage{
 \S4method{[}{RBedMethyl,missing,missing,missing}(x, i, j, ..., drop = TRUE)

@@ -3,6 +3,7 @@
 \name{subsetByRegion}
 \alias{subsetByRegion}
 \alias{subsetByRegion,RBedMethyl-method}
+\alias{subsetByRegion,RBedMethyl,character,numeric,numeric-method}
 \title{Subset by region}
 \usage{
 subsetByRegion(x, chr, start, end)
@@ -29,8 +30,7 @@ lines <- c(
 )
 tmp <- tempfile(fileext = ".bed")
 writeLines(lines, tmp)
-h5 <- tempfile(fileext = ".h5")
-bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 bm2 <- subsetByRegion(bm, "chr1", 0, 5)
 length(RBedMethyl::beta(bm2))
 }

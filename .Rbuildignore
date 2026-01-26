@@ -1,0 +1,6 @@
+^\.lintr$
+^\.vscode$
+^\.github$
+^data$
+^LICENSE$
+^RBedMethyl\.BiocCheck$

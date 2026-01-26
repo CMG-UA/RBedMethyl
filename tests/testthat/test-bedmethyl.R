@@ -7,16 +7,14 @@ testthat::test_that("readBedMethyl validates sorting", {
 
   tmp <- tempfile(fileext = ".bed")
   writeLines(lines, tmp)
-  h5 <- tempfile(fileext = ".h5")
-
-  bm <- RBedMethyl::readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
   testthat::expect_s4_class(bm, "RBedMethyl")
   testthat::expect_equal(as.numeric(RBedMethyl::beta(bm))[1], 0.5)
 
   unsorted <- tempfile(fileext = ".bed")
   writeLines(c(lines[2], lines[1]), unsorted)
   testthat::expect_error(
-    RBedMethyl::readBedMethyl(unsorted, tempfile(fileext = ".h5"), mod = "m", fields = c("coverage", "pct", "mod_reads")),
+    RBedMethyl::readBedMethyl(unsorted, mod = "m", fields = c("coverage", "pct", "mod_reads")),
     "not sorted"
   )
 })
@@ -29,8 +27,7 @@ testthat::test_that("summarizeByRegion and coercions work", {
 
   tmp <- tempfile(fileext = ".bed")
   writeLines(lines, tmp)
-  h5 <- tempfile(fileext = ".h5")
-  bm <- RBedMethyl::readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 
   regions <- GenomicRanges::GRanges(
     seqnames = "chr1",
@@ -45,7 +42,8 @@ testthat::test_that("summarizeByRegion and coercions work", {
   rse <- as(bm, "RangedSummarizedExperiment")
   testthat::expect_s4_class(rse, "RangedSummarizedExperiment")
 
-  if (requireNamespace("bsseq", quietly = TRUE)) {
+  if (requireNamespace("bsseq", quietly = TRUE) &&
+      methods::hasMethod("coerce", c("RBedMethyl", "BSseq"))) {
     bs <- as(bm, "BSseq")
     testthat::expect_s4_class(bs, "BSseq")
   }
@@ -60,8 +58,7 @@ testthat::test_that("subsetByRegion supports GRanges and [ indexing", {
 
   tmp <- tempfile(fileext = ".bed")
   writeLines(lines, tmp)
-  h5 <- tempfile(fileext = ".h5")
-  bm <- RBedMethyl::readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 
   gr <- GenomicRanges::GRanges(
     seqnames = "chr1",
@@ -84,17 +81,16 @@ testthat::test_that("subsetByRegion supports GRanges and [ indexing", {
 })
 
 testthat::test_that("example bedmethyl file can be read", {
-  example_path <- file.path(
-    system.file(package = "RBedMethyl"),
-    "data",
-    "example.bedmethyl"
+  example_path <- system.file(
+    "extdata",
+    "example.bedmethyl",
+    package = "RBedMethyl"
   )
   if (!file.exists(example_path)) {
-    stop("example.bedmethyl is missing from the package data directory.")
+    stop("example.bedmethyl is missing from the package extdata directory.")
   }
 
-  h5 <- tempfile(fileext = ".h5")
-  bm <- RBedMethyl::readBedMethyl(example_path, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+  bm <- RBedMethyl::readBedMethyl(example_path, mod = "m", fields = c("coverage", "pct", "mod_reads"))
   testthat::expect_s4_class(bm, "RBedMethyl")
   testthat::expect_true(length(bm@index) > 0L)
 })

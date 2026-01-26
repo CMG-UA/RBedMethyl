@@ -31,8 +31,7 @@ lines <- c(
 bed <- tempfile(fileext = ".bed")
 writeLines(lines, bed)
 
-h5 <- tempfile(fileext = ".h5")
-bm <- readBedMethyl(bed, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+bm <- readBedMethyl(bed, mod = "m", fields = c("coverage", "pct", "mod_reads"))
 
 bm
 ```
@@ -56,11 +55,12 @@ rse <- as(bm, "RangedSummarizedExperiment")
 rse
 
 # bsseq (if installed)
-if (requireNamespace("bsseq", quietly = TRUE)) {
+if (requireNamespace("bsseq", quietly = TRUE) &&
+    methods::hasMethod("coerce", c("RBedMethyl", "BSseq"))) {
   bs <- as(bm, "BSseq")
   bs
 } else {
-  message("bsseq is not installed; skipping BSseq coercion.")
+  message("bsseq is not installed or BSseq coercion is unavailable; skipping BSseq coercion.")
 }
 ```
 
