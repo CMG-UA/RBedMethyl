@@ -1,0 +1,209 @@
+#' Read an ONT modkit bedMethyl file
+#'
+#' Create an \code{RBedMethyl} object backed by HDF5Array from a nanoporetech
+#' modkit bedMethyl file (headerless).
+#'
+#' @param bedmethyl Path to a nanoporetech modkit bedMethyl file (optionally gzipped).
+#' @param h5file Path to the HDF5 file to create.
+#' @param mod Modification code to retain (e.g., \code{"m"}).
+#' @param chunk_size Reserved for future use.
+#' @param check_sorted Logical, check that records are sorted by chrom and chromStart.
+#' @param fields Character vector of numeric fields to load. Defaults to \code{c("coverage", "mod_reads")}.
+#'
+#' @return An \code{RBedMethyl} object.
+#' @export
+#' @examples
+#' lines <- c(
+#'   paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+#'   paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t")
+#' )
+#' tmp <- tempfile(fileext = ".bed")
+#' writeLines(lines, tmp)
+#' h5 <- tempfile(fileext = ".h5")
+#' bm <- readBedMethyl(tmp, h5, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+#' bm
+readBedMethyl <- function(bedmethyl, h5file, mod, chunk_size = 5e6,
+                          check_sorted = TRUE,
+                          fields = c("coverage", "mod_reads")) {
+  required_cols <- c(
+    "chrom", "chromStart", "chromEnd", "mod", "score", "strand",
+    "thickStart", "thickEnd", "itemRgb", "coverage", "pct",
+    "mod_reads", "unmod_reads", "other_reads",
+    "del_reads", "fail_reads", "diff_reads", "nocall_reads"
+  )
+
+  stream_cmd <- function(path) {
+    is_gz <- grepl("\\.gz$", path, ignore.case = TRUE)
+    base_cmd <- if (is_gz) "zcat" else "cat"
+    sprintf("%s %s", base_cmd, shQuote(path))
+  }
+
+  check_sorted_chunk <- function(dt, chrom_levels, last_chr, last_start) {
+    if (nrow(dt) == 0L) {
+      return(list(last_chr = last_chr, last_start = last_start))
+    }
+    codes <- match(dt$chrom, chrom_levels)
+    if (any(is.na(codes))) stop("Unknown chromosome encountered during sorting check.")
+
+    if (!is.null(last_chr)) {
+      if (codes[1] < last_chr || (codes[1] == last_chr && dt$chromStart[1] < last_start)) {
+        stop("bedMethyl records are not sorted by chrom and chromStart.")
+      }
+    }
+
+    if (nrow(dt) > 1L) {
+      prev_codes <- codes[-length(codes)]
+      next_codes <- codes[-1L]
+      prev_start <- dt$chromStart[-nrow(dt)]
+      next_start <- dt$chromStart[-1L]
+      bad <- next_codes < prev_codes | (next_codes == prev_codes & next_start < prev_start)
+      if (any(bad)) stop("bedMethyl records are not sorted by chrom and chromStart.")
+    }
+
+    list(last_chr = codes[nrow(dt)], last_start = dt$chromStart[nrow(dt)])
+  }
+
+  numeric_fields <- c(
+    "coverage", "pct", "mod_reads", "unmod_reads", "other_reads",
+    "del_reads", "fail_reads", "diff_reads", "nocall_reads"
+  )
+  invalid_compat <- c("score", "thickStart", "thickEnd", "itemRgb")
+  if (any(fields %in% invalid_compat)) {
+    stop("Unsupported fields requested (legacy compatibility columns): ",
+         paste(intersect(fields, invalid_compat), collapse = ", "))
+  }
+  invalid_fields <- setdiff(fields, numeric_fields)
+  if (length(invalid_fields) > 0L) {
+    stop("Unsupported fields requested: ", paste(invalid_fields, collapse = ", "))
+  }
+
+  fields <- unique(c(fields, "coverage"))
+  strand_levels <- c("+", "-")
+
+  preview <- data.table::fread(
+    cmd = stream_cmd(bedmethyl),
+    header = FALSE,
+    sep = "\t",
+    quote = "",
+    nrows = 1
+  )
+  if (ncol(preview) < length(required_cols)) {
+    stop("Unexpected number of columns in bedMethyl file.")
+  }
+
+  core_fields <- c("chrom", "chromStart", "chromEnd", "strand", "mod")
+  select_fields <- unique(c(core_fields, fields))
+  col_map <- setNames(seq_along(required_cols), required_cols)
+  select_idx <- unname(col_map[select_fields])
+
+  dt <- data.table::fread(
+    cmd = stream_cmd(bedmethyl),
+    header = FALSE,
+    sep = "\t",
+    quote = "",
+    select = select_idx
+  )
+  data.table::setnames(dt, select_fields)
+
+  int_cols <- intersect(c(
+    "chromStart", "chromEnd", "score", "thickStart", "thickEnd",
+    "coverage", "mod_reads", "unmod_reads", "other_reads",
+    "del_reads", "fail_reads", "diff_reads", "nocall_reads"
+  ), names(dt))
+  num_cols <- intersect(c("pct"), names(dt))
+
+  for (nm in int_cols) dt[[nm]] <- as.integer(dt[[nm]])
+  for (nm in num_cols) dt[[nm]] <- as.numeric(dt[[nm]])
+
+  if (check_sorted) {
+    chrom_levels_sort <- unique(dt$chrom)
+    check_sorted_chunk(dt, chrom_levels_sort, NULL, NULL)
+  }
+
+  dt <- dt[dt[["mod"]] == mod, , drop = FALSE]
+  if (nrow(dt) == 0) stop("No records found for requested modification.")
+
+  chrom_levels <- unique(dt$chrom)
+
+  rle_chr <- rle(dt$chrom)
+  ends <- cumsum(rle_chr$lengths)
+  starts <- ends - rle_chr$lengths + 1L
+  chr_index <- cbind(starts, ends)
+  rownames(chr_index) <- rle_chr$values
+
+  ds_name <- function(name) paste0(mod, "_", name)
+
+  HDF5Array::writeHDF5Array(as.matrix(match(dt$chrom, chrom_levels)),
+    filepath = h5file,
+    name = ds_name("chrom")
+  )
+  HDF5Array::writeHDF5Array(as.matrix(dt$chromStart),
+    filepath = h5file,
+    name = ds_name("chromStart")
+  )
+  HDF5Array::writeHDF5Array(as.matrix(dt$chromEnd),
+    filepath = h5file,
+    name = ds_name("chromEnd")
+  )
+  HDF5Array::writeHDF5Array(as.matrix(match(dt$strand, strand_levels)),
+    filepath = h5file,
+    name = ds_name("strand")
+  )
+
+  assays <- S4Vectors::SimpleList(
+    chrom = HDF5Array::HDF5Array(h5file, ds_name("chrom")),
+    chromStart = HDF5Array::HDF5Array(h5file, ds_name("chromStart")),
+    chromEnd = HDF5Array::HDF5Array(h5file, ds_name("chromEnd")),
+    strand = HDF5Array::HDF5Array(h5file, ds_name("strand"))
+  )
+
+  for (field in fields) {
+    HDF5Array::writeHDF5Array(as.matrix(dt[[field]]),
+      filepath = h5file,
+      name = ds_name(field)
+    )
+    assays[[field]] <- HDF5Array::HDF5Array(h5file, ds_name(field))
+  }
+
+  new("RBedMethyl",
+    assays = assays,
+    chrom_levels = chrom_levels,
+    strand_levels = strand_levels,
+    chr_index = chr_index,
+    index = seq_along(assays$coverage),
+    mod = mod
+  )
+}
+
+#' List retrievable bedMethyl fields
+#'
+#' Returns a data.frame describing retrievable bedMethyl fields and their types.
+#'
+#' @return A \code{data.frame} with columns \code{field}, \code{type}, and \code{description}.
+#' @export
+#' @examples
+#' bedMethylFields()
+bedMethylFields <- function() {
+  data.frame(
+    field = c(
+      "coverage", "pct", "mod_reads", "unmod_reads", "other_reads",
+      "del_reads", "fail_reads", "diff_reads", "nocall_reads"
+    ),
+    type = c(
+      "int", "float", "int", "int", "int",
+      "int", "int", "int", "int"
+    ),
+    description = c(
+      "Valid coverage (Nvalid_cov).",
+      "Fraction modified (Nmod / Nvalid_cov).",
+      "Number of modified calls (Nmod).",
+      "Number of canonical calls (Ncanonical).",
+      "Number of other-mod calls (Nother_mod).",
+      "Number of deletions at reference position (Ndelete).",
+      "Number of failed calls below threshold (Nfail).",
+      "Number of non-canonical base calls (Ndiff).",
+      "Number of no-call reads with canonical base (Nnocall)."
+    ),
+    stringsAsFactors = FALSE
+  )
+}

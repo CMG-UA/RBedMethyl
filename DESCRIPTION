@@ -1,0 +1,43 @@
+Package: RBedMethyl
+Type: Package
+Title: Disk-backed Representation of ONT bedMethyl Files
+Version: 0.99.0
+Authors@R: c(
+    person(given   = "Vasileios",
+           family  = "Lemonidis",
+           role    = c("aut", "cre", "cph"),
+           email   = "vasileios.lemonidis@uantwerpen.be",
+           comment = c(ORCID = "0000-0002-6446-3536")),
+    person("Center for Oncological Research, University of Antwerp",
+           role = c("cph", "fnd")),
+    person("Stichting Tegen Kanker",
+           role = "fnd"))
+Description:  Bioconductor-native infrastructure for handling large
+    nanoporetech modkit bedMethyl pileup files from ONT data using
+    HDF5Array and DelayedArray.
+URL: https://github.com/CMG-UA/RBedMethyl
+BugReports: https://github.com/CMG-UA/RBedMethyl/issues
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+VignetteBuilder: knitr
+biocViews: DNAMethylation, DifferentialMethylation, Epigenetics,
+    Infrastructure, DataImport, Software
+LazyData: false
+Imports:
+    methods,
+    HDF5Array,
+    DelayedArray,
+    DelayedMatrixStats,
+    SummarizedExperiment,
+    GenomicRanges,
+    S4Vectors,
+    IRanges,
+    data.table
+Suggests:
+    BiocStyle,
+    knitr,
+    rmarkdown,
+    testthat,
+    bsseq
