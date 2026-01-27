@@ -103,6 +103,66 @@ readBedMethyl <- function(bedmethyl, mod = "m", chunk_size = 5e6,
   fields <- unique(c(fields, "coverage"))
   strand_levels <- c("+", "-")
 
+  ds_name <- function(name) paste0(mod, "_", name)
+
+  # Check if HDF5 file already exists with valid datasets and metadata - reuse if so
+  if (file.exists(h5file)) {
+    existing_ok <- tryCatch({
+      h5_contents <- rhdf5::h5ls(h5file)$name
+      required_ds <- c(ds_name("chrom"), ds_name("chromStart"), ds_name("chromEnd"), ds_name("strand"))
+      field_ds <- vapply(fields, ds_name, character(1))
+      datasets_ok <- all(c(required_ds, field_ds) %in% h5_contents)
+
+      # Also verify metadata attributes exist
+      if (datasets_ok) {
+        attrs <- rhdf5::h5readAttributes(h5file, ds_name("chrom"))
+        attrs_ok <- !is.null(attrs$chrom_levels) && !is.null(attrs$chr_index)
+        datasets_ok && attrs_ok
+      } else {
+        FALSE
+      }
+    }, error = function(e) FALSE,
+    finally = rhdf5::h5closeAll())
+
+    if (existing_ok) {
+      # Load metadata from HDF5 attributes
+      attrs <- rhdf5::h5readAttributes(h5file, ds_name("chrom"))
+      chrom_levels <- as.character(attrs$chrom_levels)
+      chr_index <- attrs$chr_index
+      if (!is.matrix(chr_index)) chr_index <- as.matrix(chr_index)
+      if (!is.null(attrs$chr_index_rownames)) {
+        rownames(chr_index) <- as.character(attrs$chr_index_rownames)
+      }
+      if (!is.null(attrs$chr_index_colnames)) {
+        colnames(chr_index) <- as.character(attrs$chr_index_colnames)
+      }
+      rhdf5::h5closeAll()
+
+      assays <- S4Vectors::SimpleList(
+        chrom = HDF5Array::HDF5Array(h5file, ds_name("chrom")),
+        chromStart = HDF5Array::HDF5Array(h5file, ds_name("chromStart")),
+        chromEnd = HDF5Array::HDF5Array(h5file, ds_name("chromEnd")),
+        strand = HDF5Array::HDF5Array(h5file, ds_name("strand"))
+      )
+      for (field in fields) {
+        assays[[field]] <- HDF5Array::HDF5Array(h5file, ds_name(field))
+      }
+
+      return(new("RBedMethyl",
+        assays = assays,
+        chrom_levels = chrom_levels,
+        strand_levels = strand_levels,
+        chr_index = chr_index,
+        index = seq_along(assays$coverage),
+        mod = mod
+      ))
+    } else {
+      # File exists but is invalid/incomplete - close handles and remove it
+      rhdf5::h5closeAll()
+      unlink(h5file)
+    }
+  }
+
   preview <- data.table::fread(
     cmd = stream_cmd(bedmethyl),
     header = FALSE,
@@ -154,8 +214,6 @@ readBedMethyl <- function(bedmethyl, mod = "m", chunk_size = 5e6,
   chr_index <- cbind(starts, ends)
   rownames(chr_index) <- rle_chr$values
 
-  ds_name <- function(name) paste0(mod, "_", name)
-
   HDF5Array::writeHDF5Array(as.matrix(match(dt$chrom, chrom_levels)),
     filepath = h5file,
     name = ds_name("chrom")
@@ -172,6 +230,18 @@ readBedMethyl <- function(bedmethyl, mod = "m", chunk_size = 5e6,
     filepath = h5file,
     name = ds_name("strand")
   )
+
+  # Store metadata as HDF5 attributes for reuse
+  fid <- rhdf5::H5Fopen(h5file)
+  did <- rhdf5::H5Dopen(fid, ds_name("chrom"))
+  rhdf5::h5writeAttribute(chrom_levels, did, "chrom_levels")
+  rhdf5::h5writeAttribute(chr_index, did, "chr_index")
+  rhdf5::h5writeAttribute(rownames(chr_index), did, "chr_index_rownames")
+  if (!is.null(colnames(chr_index))) {
+    rhdf5::h5writeAttribute(colnames(chr_index), did, "chr_index_colnames")
+  }
+  rhdf5::H5Dclose(did)
+  rhdf5::H5Fclose(fid)
 
   assays <- S4Vectors::SimpleList(
     chrom = HDF5Array::HDF5Array(h5file, ds_name("chrom")),

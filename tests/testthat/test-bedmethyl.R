@@ -112,3 +112,97 @@ testthat::test_that("example bedmethyl file can be read", {
   testthat::expect_s4_class(bm, "RBedMethyl")
   testthat::expect_true(length(bm@index) > 0L)
 })
+
+testthat::test_that("HDF5 file is reused on subsequent calls", {
+  lines <- c(
+    paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t")
+  )
+
+  tmp <- tempfile(fileext = ".bed")
+  writeLines(lines, tmp)
+
+  h5file <- tempfile(fileext = ".h5")
+
+  # First call - creates the HDF5 file
+  bm1 <- RBedMethyl::readBedMethyl(tmp, mod = "m", h5file = h5file,
+                                    fields = c("coverage", "mod_reads"))
+  testthat::expect_true(file.exists(h5file))
+  mtime1 <- file.mtime(h5file)
+
+  # Small delay to ensure mtime would differ if file were recreated
+  Sys.sleep(0.1)
+
+  # Second call - should reuse existing HDF5 file
+  bm2 <- RBedMethyl::readBedMethyl(tmp, mod = "m", h5file = h5file,
+                                    fields = c("coverage", "mod_reads"))
+  mtime2 <- file.mtime(h5file)
+
+  # File modification time should be unchanged (file was reused, not recreated)
+  testthat::expect_equal(mtime1, mtime2)
+
+  # Both objects should have identical data
+  testthat::expect_equal(as.numeric(RBedMethyl::beta(bm1)), as.numeric(RBedMethyl::beta(bm2)))
+  testthat::expect_equal(bm1@chrom_levels, bm2@chrom_levels)
+  testthat::expect_equal(bm1@chr_index, bm2@chr_index)
+})
+
+testthat::test_that("HDF5 file is recreated when incomplete", {
+  lines <- c(
+    paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t")
+  )
+
+  tmp <- tempfile(fileext = ".bed")
+  writeLines(lines, tmp)
+
+  h5file <- tempfile(fileext = ".h5")
+
+  # Create an incomplete/invalid HDF5 file
+  rhdf5::h5createFile(h5file)
+  rhdf5::h5write(1:10, h5file, "dummy_data")
+  rhdf5::h5closeAll()
+  mtime1 <- file.mtime(h5file)
+
+  Sys.sleep(0.1)
+
+  # Call should detect invalid file and recreate it
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", h5file = h5file,
+                                   fields = c("coverage", "mod_reads"))
+  mtime2 <- file.mtime(h5file)
+
+  # File should have been recreated (new mtime)
+  testthat::expect_true(mtime2 > mtime1)
+  testthat::expect_s4_class(bm, "RBedMethyl")
+  testthat::expect_equal(length(bm@index), 2L)
+})
+
+testthat::test_that("HDF5 file is recreated when fields differ", {
+  lines <- c(
+    paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t")
+  )
+
+  tmp <- tempfile(fileext = ".bed")
+  writeLines(lines, tmp)
+
+  h5file <- tempfile(fileext = ".h5")
+
+  # First call with coverage and mod_reads
+  bm1 <- RBedMethyl::readBedMethyl(tmp, mod = "m", h5file = h5file,
+                                    fields = c("coverage", "mod_reads"))
+  testthat::expect_true(file.exists(h5file))
+  mtime1 <- file.mtime(h5file)
+
+  Sys.sleep(0.1)
+
+  # Second call requesting additional field (pct) - should recreate
+  bm2 <- RBedMethyl::readBedMethyl(tmp, mod = "m", h5file = h5file,
+                                    fields = c("coverage", "mod_reads", "pct"))
+  mtime2 <- file.mtime(h5file)
+
+  # File should have been recreated to include pct field
+  testthat::expect_true(mtime2 > mtime1)
+  testthat::expect_true("pct" %in% names(bm2@assays))
+})
+

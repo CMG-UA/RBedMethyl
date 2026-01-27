@@ -28,6 +28,7 @@ LazyData: false
 Imports:
     methods,
     HDF5Array,
+    rhdf5,
     DelayedArray,
     DelayedMatrixStats,
     SummarizedExperiment,
