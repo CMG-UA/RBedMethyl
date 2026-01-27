@@ -189,6 +189,8 @@ setMethod(
 #' @return A filtered \code{RBedMethyl} object.
 #' @export
 #' @aliases subsetByRegion,RBedMethyl,GRanges-method
+#' @importClassesFrom GenomicRanges GRanges
+#' @importClassesFrom SummarizedExperiment RangedSummarizedExperiment
 setMethod(
   "subsetByRegion",
   signature(x = "RBedMethyl", chr = "GRanges", start = "missing", end = "missing"),
