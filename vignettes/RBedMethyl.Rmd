@@ -52,7 +52,7 @@ RBedMethyl package provides a minimalistic interface, which allows the users to 
 1. load them into R, with a minimal memory footprint with `readBedMethyl`
 2. subset them:
     - by chromosome(s) (`subsetByChromosomes`)
-    - by region(s) (`subsetByRegion`)
+    - by region(s) (`subsetByRegion` or using the `[]` bracketing index system)
     - by coverage (`filterByCoverage`)
     - by a specific filter on an assay (`subsetBy`)
 3. create region summary statistics (`summarizeByRegion`)
