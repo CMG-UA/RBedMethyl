@@ -1,0 +1,167 @@
+---
+title: "ONT-scale workflows with RBedMethyl"
+author: "RBedMethyl authors"
+date: "January 25, 2026"
+output: BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{ONT-scale workflows with RBedMethyl}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(RBedMethyl)
+```
+
+# Overview
+
+`RBedMethyl` provides disk-backed access to nanoporetech modkit bedMethyl files generated from ONT data, enabling ONT-scale workflows without loading full tables into memory. This vignette demonstrates a typical workflow: ingest, subset by region, compute per-region summaries, and coerce to downstream Bioconductor classes.
+
+
+# The bedMethyl format
+[modkit](https://github.com/nanoporetech/modkit), the bioinformatics tool produced by Oxford Nanopore Technologies, is one of the easiest and most direct ways to extract site-specific methylation information from a long-read BAM file produced by [Dorado](https://github.com/nanoporetech/dorado).
+As explained in [UCSC](https://genome.ucsc.edu/goldenpath/help/bedMethyl.html), the bedMethyl format is an extension of the standard BED 9 format, with the following columns:
+
+| column | name                  | description                                                                    | type  |
+|--------|-----------------------|--------------------------------------------------------------------------------|-------|
+| 1      | chrom                 | name of reference sequence from BAM header                                     | str   |
+| 2      | start position        | 0-based start position                                                         | int   |
+| 3      | end position          | 0-based exclusive end position                                                 | int   |
+| 4      | modified base code    | single letter code for modified base                                           | str   |
+| 5      | score                 | Equal to N<sub>valid_cov</sub>.                                                | int   |
+| 6      | strand                | '+' for positive strand '-' for negative strand, '.' when strands are combined | str   |
+| 7      | start position        | included for compatibility                                                     | int   |
+| 8      | end position          | included for compatibility                                                     | int   |
+| 9      | color                 | included for compatibility, always 255,0,0                                     | str   |
+| 10     | N<sub>valid_cov</sub> | Number of reads with valid modification call                                                        | int   |
+| 11     | fraction modified     | Percent of valid calls that are modified                                    | float |
+| 12     | N<sub>mod</sub>       | Number of calls with a modified base                                                         | int   |
+| 13     | N<sub>canonical</sub> | Number of calls with a canonical base                                                        | int   |
+| 14     | N<sub>other_mod</sub> | Number of calls with a modified base, other modifications                                                         | int   |
+| 15     | N<sub>delete</sub>    | Number of reads with a deletion at this reference position                                                         | int   |
+| 16     | N<sub>fail</sub>      | Number of calls where the probability of the call was below the threshold                                                         | int   |
+| 17     | N<sub>diff</sub>      | Number of reads with a base other than the canonical base for this modification                                                         | int   |
+| 18     | N<sub>nocall</sub>    | Number of reads aligned to this reference position, with the correct canonical base, but without a base modification call                                                         | int   |
+
+
+# RBedMethyl as a plug-and-play connector
+
+RBedMethyl package provides a minimalistic interface, which allows the users to process bedMethyl files. They can:
+
+1. load them into R, with a minimal memory footprint with `readBedMethyl`
+2. subset them:
+    - by chromosome(s) (`subsetByChromosomes`)
+    - by region(s) (`subsetByRegion`)
+    - by coverage (`filterByCoverage`)
+    - by a specific filter on an assay (`subsetBy`)
+3. create region summary statistics (`summarizeByRegion`)
+4. convert them to other Bioconductor-powered data structures using the `as(x, name)` coercion: [RangedSummarizedExperiment](https://rdrr.io/bioc/SummarizedExperiment/) and [BSseq](https://rdrr.io/bioc/bsseq/man/BSseq-class.html)
+
+# Ingest a bedMethyl file
+
+The `RBedMethyl` object is an HDF5-backed structure. It is designed to keep a single modification (i.e, "h" or "m"). The user can select which fields to keep from the bedMethyl file during the reading process.
+The correspondence is:
+
+| bedMethyl name        |   RBedMethyl assay |
+|-----------------------|--------------------|
+| N<sub>valid_cov</sub> |   coverage |
+| fraction modified     |   pct |
+| N<sub>mod</sub>       |   mod_reads |
+| N<sub>canonical</sub> |   unmod_reads |
+| N<sub>other_mod</sub> |   other_reads |
+| N<sub>delete</sub>    |    del_reads |
+| N<sub>fail</sub>      |    fail_reads |
+| N<sub>diff</sub>      |    diff_reads |
+| N<sub>nocall</sub>    |    nocall_reads |
+
+By default the `readBedMethyl` only loads "coverage", "pct" and "mod_reads" assays.
+
+```{r ingest}
+# Example bedMethyl-like content, header is dropped
+df <- data.frame(
+  r1 = c("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0),
+  r2 = c("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0),
+  r3 = c("chr2", 0, 1, "m", 0, "-", 0, 1, 0, 8, 0.375, 3, 5, 0, 0, 0, 0, 0),
+  r4 = c("chr2", 0, 1, "h", 0, "-", 0, 1, 0, 8, 0.375, 3, 5, 0, 0, 0, 0, 0)
+)
+df <- t(df)
+colnames(df) <- c(
+  "chrom", "chromStart", "chromEnd", "mod", "score", "strand",
+  "thickStart", "thickEnd", "itemRgb", "coverage", "pct",
+  "mod_reads", "unmod_reads", "other_reads",
+  "del_reads", "fail_reads", "diff_reads", "nocall_reads"
+)
+df
+
+bed <- tempfile(fileext = ".bed")
+write.table(df, bed, quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
+
+# Read only "m" modification rows, and only coverage,pct and mod_reads assays
+bm <- readBedMethyl(bed, mod = "m", fields = c("coverage", "pct", "mod_reads"))
+
+bm
+```
+
+# Subsetting example
+```{r subset}
+# By one or more chromosomes
+subsetByChromosomes(bm, "chr1")
+subsetByChromosomes(bm, c("chr1", "chr2"))
+
+# By region
+## Can supply the chromosome, start, end
+subsetByRegion(bm, "chr1", 1, 12)
+## Or a GRanges object
+regions <- GenomicRanges::GRanges(
+  seqnames = c("chr1", "chr2"),
+  ranges = IRanges::IRanges(start = c(1, 1), end = c(12, 2))
+)
+subsetByRegion(bm, regions)
+
+## The [] bracketing index system also works
+bm[regions]
+
+# By minimum coverage
+filterCoverage(bm, 15)
+
+# By column using a function
+## The following keeps only lines where the methylation percentage is higher than 0.3
+subsetBy(bm, "pct", function(x) x > 0.3)
+
+
+```
+
+# Region-level summaries
+
+```{r summarize}
+regions <- GenomicRanges::GRanges(
+  seqnames = c("chr1", "chr2"),
+  ranges = IRanges::IRanges(start = c(1, 1), end = c(12, 2))
+)
+# For each region, generate summary statistics
+## `mod_reads` is the total number of reads, `beta` stands for average methylation, `n_sites` is the number of sites
+summarizeByRegion(bm, regions)
+```
+
+# Coercion to downstream classes
+
+```{r coercion}
+# RangedSummarizedExperiment
+rse <- as(bm, "RangedSummarizedExperiment")
+rse
+
+# bsseq (if installed)
+if (requireNamespace("bsseq", quietly = TRUE) &&
+    methods::hasMethod("coerce", c("RBedMethyl", "BSseq"))) {
+  bs <- as(bm, "BSseq")
+  bs
+} else {
+  message("bsseq is not installed or BSseq coercion is unavailable; skipping BSseq coercion.")
+}
+```
+
+## Session info
+```{r session-info}
+sessionInfo()
+```

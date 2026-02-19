@@ -2,6 +2,32 @@ if (!isGeneric("beta")) {
   setGeneric("beta", function(a, b) standardGeneric("beta"))
 }
 
+#' Show an RBedMethyl summary
+#'
+#' Print a concise summary of an \code{RBedMethyl} object.
+setMethod("show", "RBedMethyl", function(object) {
+  total_rows <- length(object@assays$chrom)
+  active_rows <- length(object@index)
+  assays <- names(object@assays)
+
+  n_chr <- length(object@chrom_levels)
+  n_preview <- min(5L, n_chr)
+  chrom_preview <- if (n_preview > 0L) {
+    paste(object@chrom_levels[seq_len(n_preview)], collapse = ", ")
+  } else {
+    "<none>"
+  }
+  if (n_chr > n_preview) {
+    chrom_preview <- paste0(chrom_preview, ", ...")
+  }
+
+  cat("RBedMethyl object\n")
+  cat("  Modification:", paste(object@mod, collapse = ", "), "\n")
+  cat("  Rows (active/total):", active_rows, "/", total_rows, "\n")
+  cat("  Chromosomes:", n_chr, "(", chrom_preview, ")\n")
+  cat("  Assays:", paste(assays, collapse = ", "), "\n")
+})
+
 #' Per-site methylation fraction
 #'
 #' Compute per-site methylation fraction for an \code{RBedMethyl} object.

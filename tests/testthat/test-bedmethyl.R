@@ -206,3 +206,23 @@ testthat::test_that("HDF5 file is recreated when fields differ", {
   testthat::expect_true("pct" %in% names(bm2@assays))
 })
 
+testthat::test_that("show method prints a concise summary", {
+  lines <- c(
+    paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr1", 10, 11, "m", 0, "+", 10, 11, 0, 20, 0.25, 5, 15, 0, 0, 0, 0, 0, sep = "\t"),
+    paste("chr2", 0, 1, "m", 0, "-", 0, 1, 0, 8, 0.375, 3, 5, 0, 0, 0, 0, 0, sep = "\t")
+  )
+
+  tmp <- tempfile(fileext = ".bed")
+  writeLines(lines, tmp)
+  bm <- RBedMethyl::readBedMethyl(tmp, mod = "m", fields = c("coverage", "mod_reads"))
+  bm_chr1 <- RBedMethyl::subsetByChromosomes(bm, "chr1")
+
+  out <- paste(capture.output(show(bm_chr1)), collapse = "\n")
+
+  testthat::expect_match(out, "RBedMethyl object")
+  testthat::expect_match(out, "Modification: m")
+  testthat::expect_match(out, "Rows \\(active/total\\): 2 / 3")
+  testthat::expect_match(out, "Chromosomes: 2")
+  testthat::expect_match(out, "Assays: chrom, chromStart, chromEnd, strand, coverage, mod_reads")
+})
