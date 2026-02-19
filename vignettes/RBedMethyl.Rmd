@@ -123,13 +123,11 @@ subsetByRegion(bm, regions)
 bm[regions]
 
 # By minimum coverage
-filterCoverage(bm, 15)
+filterByCoverage(bm, 15)
 
 # By column using a function
 ## The following keeps only lines where the methylation percentage is higher than 0.3
 subsetBy(bm, "pct", function(x) x > 0.3)
-
-
 ```
 
 # Region-level summaries

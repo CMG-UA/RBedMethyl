@@ -94,7 +94,7 @@ setMethod("subsetBy", "RBedMethyl", function(x, column, FUN) {
 #'
 #' @return A filtered \code{RBedMethyl} object.
 #' @export
-#' @aliases filterCoverage,RBedMethyl-method
+#' @aliases filterByCoverage,RBedMethyl-method
 #' @examples
 #' lines <- c(
 #'   paste("chr1", 0, 1, "m", 0, "+", 0, 1, 0, 10, 0.5, 5, 5, 0, 0, 0, 0, 0, sep = "\t"),
@@ -103,11 +103,11 @@ setMethod("subsetBy", "RBedMethyl", function(x, column, FUN) {
 #' tmp <- tempfile(fileext = ".bed")
 #' writeLines(lines, tmp)
 #' bm <- readBedMethyl(tmp, mod = "m", fields = c("coverage", "pct", "mod_reads"))
-#' bm2 <- filterCoverage(bm, min_cov = 15)
+#' bm2 <- filterByCoverage(bm, min_cov = 15)
 #' length(RBedMethyl::beta(bm2))
-setGeneric("filterCoverage", function(x, min_cov) standardGeneric("filterCoverage"))
+setGeneric("filterByCoverage", function(x, min_cov) standardGeneric("filterByCoverage"))
 #' @export
-setMethod("filterCoverage", "RBedMethyl", function(x, min_cov = 5L) {
+setMethod("filterByCoverage", "RBedMethyl", function(x, min_cov = 5L) {
   subsetBy(x, "coverage", function(v) v >= min_cov)
 })
 
