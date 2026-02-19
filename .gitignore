@@ -50,3 +50,5 @@ rsconnect/
 
 # .vscode settings
 .vscode/settings.json
+
+.lintr
