@@ -408,26 +408,24 @@ setAs("RBedMethyl", "RangedSummarizedExperiment", function(from) {
   )
 })
 
-if (requireNamespace("bsseq", quietly = TRUE)) {
-  setAs("RBedMethyl", "BSseq", function(from) {
-    if (!all(c("coverage", "mod_reads") %in% names(from@assays))) {
-      stop("coverage and mod_reads assays are required for BSseq coercion.")
-    }
-    idx <- from@index
-    chrom <- from@chrom_levels[from@assays$chrom[idx]]
-    start <- from@assays$chromStart[idx]
-    end <- from@assays$chromEnd[idx]
-    strand <- from@strand_levels[from@assays$strand[idx]]
+setAs("RBedMethyl", "BSseq", function(from) {
+  if (!all(c("coverage", "mod_reads") %in% names(from@assays))) {
+    stop("coverage and mod_reads assays are required for BSseq coercion.")
+  }
+  idx <- from@index
+  chrom <- from@chrom_levels[from@assays$chrom[idx]]
+  start <- from@assays$chromStart[idx]
+  end <- from@assays$chromEnd[idx]
+  strand <- from@strand_levels[from@assays$strand[idx]]
 
-    gr <- GenomicRanges::GRanges(
-      seqnames = chrom,
-      ranges = IRanges::IRanges(start = start + 1L, end = end),
-      strand = strand
-    )
+  gr <- GenomicRanges::GRanges(
+    seqnames = chrom,
+    ranges = IRanges::IRanges(start = start + 1L, end = end),
+    strand = strand
+  )
 
-    M <- DelayedArray::cbind(from@assays$mod_reads[idx])
-    Cov <- DelayedArray::cbind(from@assays$coverage[idx])
+  M <- DelayedArray::cbind(from@assays$mod_reads[idx])
+  Cov <- DelayedArray::cbind(from@assays$coverage[idx])
 
-    bsseq::BSseq(M = M, Cov = Cov, gr = gr)
-  })
-}
+  bsseq::BSseq(M = M, Cov = Cov, gr = gr)
+})

@@ -1,7 +1,7 @@
 Package: RBedMethyl
 Type: Package
 Title: Disk-backed Representation of ONT bedMethyl Files
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(
     person(given   = "Vasileios",
            family  = "Lemonidis",
@@ -32,6 +32,7 @@ Imports:
     DelayedArray,
     DelayedMatrixStats,
     SummarizedExperiment,
+    bsseq,
     GenomicRanges,
     S4Vectors,
     IRanges,
@@ -40,5 +41,4 @@ Suggests:
     BiocStyle,
     knitr,
     rmarkdown,
-    testthat,
-    bsseq
+    testthat
