@@ -1,7 +1,7 @@
 Package: RBedMethyl
 Type: Package
 Title: Disk-backed Representation of ONT bedMethyl Files
-Version: 0.99.1
+Version: 1.0.0
 Authors@R: c(
     person(given   = "Vasileios",
            family  = "Lemonidis",
