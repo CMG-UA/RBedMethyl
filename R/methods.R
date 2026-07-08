@@ -423,9 +423,7 @@ setAs("RBedMethyl", "BSseq", function(from) {
     ranges = IRanges::IRanges(start = start + 1L, end = end),
     strand = strand
   )
-
-  M <- DelayedArray::cbind(from@assays$mod_reads[idx])
-  Cov <- DelayedArray::cbind(from@assays$coverage[idx])
-
+  M <- from@assays$mod_reads[idx, , drop = FALSE]
+  Cov <- from@assays$coverage[idx, , drop = FALSE]
   bsseq::BSseq(M = M, Cov = Cov, gr = gr)
 })

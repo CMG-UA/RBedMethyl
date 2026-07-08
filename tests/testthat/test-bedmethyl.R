@@ -46,6 +46,8 @@ testthat::test_that("summarizeByRegion and coercions work", {
       methods::hasMethod("coerce", c("RBedMethyl", "BSseq"))) {
     bs <- as(bm, "BSseq")
     testthat::expect_s4_class(bs, "BSseq")
+    testthat::expect_true(methods::is(SummarizedExperiment::assay(bs, "M"), "DelayedArray"))
+    testthat::expect_true(methods::is(SummarizedExperiment::assay(bs, "Cov"), "DelayedArray"))
   }
 })
 
