@@ -360,7 +360,7 @@ setMethod("summarizeByRegion", "RBedMethyl", function(x, regions) {
       mod_sum[i] <- 0
       n_sites[i] <- 0L
     } else {
-      mat <- DelayedArray::cbind(coverage[rows], mod_reads[rows])
+      mat <- S4Arrays::cbind(coverage[rows], mod_reads[rows])
       sums <- DelayedMatrixStats::colSums2(mat)
       cov_sum[i] <- sums[1]
       mod_sum[i] <- sums[2]
@@ -393,13 +393,13 @@ setAs("RBedMethyl", "RangedSummarizedExperiment", function(from) {
 
   assays <- S4Vectors::SimpleList()
   if ("coverage" %in% names(from@assays)) {
-    assays$coverage <- DelayedArray::cbind(from@assays$coverage[idx])
+    assays$coverage <- S4Arrays::cbind(from@assays$coverage[idx])
   }
   if ("mod_reads" %in% names(from@assays)) {
-    assays$mod_reads <- DelayedArray::cbind(from@assays$mod_reads[idx])
+    assays$mod_reads <- S4Arrays::cbind(from@assays$mod_reads[idx])
   }
   if ("pct" %in% names(from@assays)) {
-    assays$pct <- DelayedArray::cbind(from@assays$pct[idx])
+    assays$pct <- S4Arrays::cbind(from@assays$pct[idx])
   }
 
   SummarizedExperiment::SummarizedExperiment(
