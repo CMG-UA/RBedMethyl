@@ -1,11 +1,9 @@
-# RBedMethyl 0.99.0
+## CHANGES IN VERSION 1.1.3
 
-- Initial Bioconductor submission with core functionality:
-	- Disk-backed import of modkit bedMethyl files via `readBedMethyl()` with HDF5Array storage.
-	- Field discovery with `bedMethylFields()`.
-	- Per-site methylation fraction via `beta()`.
-	- Assay-based filtering with `subsetBy()` and `filterByCoverage()`.
-	- Genomic subsetting by interval and `GRanges` with `subsetByRegion()` and `[`.
-	- Region-level summaries with `summarizeByRegion()`.
-	- Coercion to `RangedSummarizedExperiment` and optional `BSseq`.
-	- Vignette and runnable examples.
+-   Updated auto realization backend to HDF5 
+- Resolved issue with dependency on DelayedArray, which is no longer needed.
+- Updated `cbind` to reflect the correct `S4Array` dependency
+
+
+
+-------------------------

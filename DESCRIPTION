@@ -1,7 +1,7 @@
 Package: RBedMethyl
 Type: Package
 Title: Disk-backed Representation of ONT bedMethyl Files
-Version: 1.1.2
+Version: 1.1.3
 Authors@R: c(
     person(given   = "Vasileios",
            family  = "Lemonidis",
@@ -14,7 +14,7 @@ Authors@R: c(
            role = "fnd"))
 Description:  Bioconductor-native infrastructure for handling large
     nanoporetech modkit bedMethyl pileup files from ONT data using
-    HDF5Array and DelayedArray.
+    HDF5Array.
 URL: https://github.com/CMG-UA/RBedMethyl
 BugReports: https://github.com/CMG-UA/RBedMethyl/issues
 License: GPL (>= 2)
@@ -29,11 +29,11 @@ Imports:
     methods,
     HDF5Array,
     rhdf5,
-    DelayedArray,
     DelayedMatrixStats,
     SummarizedExperiment,
     bsseq,
     GenomicRanges,
+    S4Arrays,
     S4Vectors,
     IRanges,
     data.table
